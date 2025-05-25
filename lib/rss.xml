@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Notes]]></title><description><![CDATA[Obsidian digital garden]]></description><link>https://bees.lol/</link><image><url>.\https:\\bees.lol\lib\media\favicon.png</url><title>Notes</title><link>https://bees.lol/</link></image><generator>Webpage HTML Export plugin for Obsidian</generator><lastBuildDate>Sun, 25 May 2025 08:32:24 GMT</lastBuildDate><atom:link href=".\https:\\bees.lol\lib\rss.xml" rel="self" type="application/rss+xml"/><pubDate>Sun, 25 May 2025 08:32:23 GMT</pubDate><copyright><![CDATA[bees]]></copyright><ttl>60</ttl><dc:creator>bees</dc:creator><item><title><![CDATA[Solutions]]></title><description><![CDATA[ 
+ <br><br>]]></description><link>.\https:\\bees.lol\microcorruption\0_miscellanea.html</link><guid isPermaLink="false">microcorruption/0_miscellanea.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sun, 25 May 2025 08:23:50 GMT</pubDate></item><item><title><![CDATA[1_new_orleans]]></title><description><![CDATA[ 
+ <br>Steps I took to solve:<br>
+<br>Set a breakpoint on &lt;main&gt;
+<br>Step through function into &lt;create password&gt; <img alt="Pasted image 20250524171129.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524171129.png">
+<br>This function stores an address 0x2400 in r15 and then stores each byte of the password at successive offsets from that address. <img alt="Pasted image 20250524171427.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524171427.png">I could just take the password from these hex values but I decided to let it run so I could just copy it from the memory dump.
+<br>Here is the password starting from 0x2400<img alt="Pasted image 20250524171604.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524171604.png"><br>
+The solution was ntT7X3"
+]]></description><link>.\https:\\bees.lol\microcorruption\1_new_orleans.html</link><guid isPermaLink="false">microcorruption/1_new_orleans.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sat, 24 May 2025 21:17:14 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524171129.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524171129.png&quot;&gt;&lt;/figure&gt;</content:encoded></item><item><title><![CDATA[2_sydney]]></title><description><![CDATA[ 
+ <br>Steps I took to solve:<br>
+<br>Set a breakpoint on &lt;main&gt;
+<br>Unlike in <a data-tooltip-position="top" aria-label="1_new_orleans" data-href="1_new_orleans" href=".\https:\\bees.lol\microcorruption\1_new_orleans.html" class="internal-link" target="_self" rel="noopener nofollow">New Orleans</a>, the password is not created at runtime.<img alt="Pasted image 20250524171959.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524171959.png">
+<br>Let's set a breakpoint on &lt;check_password&gt;
+<br>This function seems to check two bytes of r15 at a time against a hardcoded password, `0x4643 734a 4425 7c7a.<br>
+<img alt="Pasted image 20250524173105.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524173105.png">
+
+<br>I can attempt to enter this password in hex
+<br>Unfortunately, this is invalid.
+<br>Maybe we have the wrong endian-ness? Let's try 0x43464a7325447a7c<img alt="Pasted image 20250524174914.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524174914.png">
+<br>Let's gooo — and now we know to use little-endian byte order<img alt="Pasted image 20250524175310.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524175310.png">
+
+
+<br>Solution: 43464a7325447a7c]]></description><link>.\https:\\bees.lol\microcorruption\2_sydney.html</link><guid isPermaLink="false">microcorruption/2_sydney.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sun, 25 May 2025 08:24:37 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524171959.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524171959.png&quot;&gt;&lt;/figure&gt;</content:encoded></item><item><title><![CDATA[3_hanoi]]></title><description><![CDATA[ 
+ <br>New LockIT Pro revision just dropped, rev b!!<br>
+<img alt="Pasted image 20250524190206.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524190206.png"><br>
+We've got an external password checker now, the Hardware Security Module. This is gonna make things a little harder.<br>
+<img alt="Pasted image 20250524190314.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524190314.png"><br>
+We're probably not going to be able to just pull the password out of the memory now.<br>Our &lt;main&gt; function is a lot simpler now, we just run the &lt;login&gt; function<br>
+<img alt="Pasted image 20250524191426.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524191426.png"><br>
+And the &lt;login&gt; function is where all the program logic takes place.<br>
+<img alt="Pasted image 20250524192022.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524192022.png"><br>
+We can see that passwords are expected to be 8 to 16 characters long, and our password is placed starting at 0x2400 (line 4538), so a 16 char password would end at 0x240f.<br>The most relevant part here seems to be the comparison at line 455a, <br>455a:  f290 d000 1024 cmp.b	#0xd0, &amp;0x2410
+<br>We check to see if the value 0xd0 is at the address 0x2410. From earlier, we know a 16 char password ends at 0x240f which happens to be the address preceding x2410. What if we just use a 17 character password to place the value 0xd0 at 0x2410? Let's try it:<br>
+<img alt="Pasted image 20250524193648.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524193648.png"><br>
+Seems promising:<br>
+<img alt="Pasted image 20250524193718.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524193718.png"><br>
+Let's put a breakpoint on line 455a and see how it goes:<br>
+<img alt="Pasted image 20250524194116.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524194116.png"><br>
+If the comparison works as we expect, the zero bit will be set, and the jnz will not skip the door unlock procedure that immediately follows. So we step, and:<br>
+<img alt="Pasted image 20250524193826.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524193826.png"><br>
+The Z here means that our zero bit is set! and if we let the program continue, our door is unlocked!!<br>
+<img alt="Pasted image 20250524193915.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524193915.png"><br>I think we just did a buffer overflow 😌<br>
+Solution: 000102030405060708090a0b0c0d0e0fd0]]></description><link>.\https:\\bees.lol\microcorruption\3_hanoi.html</link><guid isPermaLink="false">microcorruption/3_hanoi.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sat, 24 May 2025 23:50:18 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524190206.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524190206.png&quot;&gt;&lt;/figure&gt;</content:encoded></item><item><title><![CDATA[4_cusco]]></title><description><![CDATA[ 
+ <br><img alt="Pasted image 20250524194637.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524194637.png"><br>
+Well, they've patched the buffer overflow we used in <a data-tooltip-position="top" aria-label="3_hanoi" data-href="3_hanoi" href=".\https:\\bees.lol\microcorruption\3_hanoi.html" class="internal-link" target="_self" rel="noopener nofollow">Hanoi</a>. Specifically, they've removed the flag we compared against.<img alt="Pasted image 20250524194731.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524194731.png"><br>
+If we look at our &lt;login&gt; function, we'll see that check missing, and instead we check if r15 is non-zero (line 4524):<br>
+<img alt="Pasted image 20250524195152.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524195152.png"><br>
+Let's try a long password and see where it gets us<br>
+<img alt="Pasted image 20250524201854.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524201854.png"><br>
+<img alt="Pasted image 20250524201942.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524201942.png"><br>
+Looks like there isn't any bounds checking here. Let's step through the program and see if anything interesting happens.<br>
+Here we are at the end of the &lt;login&gt; function:<img alt="Pasted image 20250524202122.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524202122.png"><br>
+and we can see that sp, the address we'll return to, has been placed at our EEEE<br>
+<img alt="Pasted image 20250524202204.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524202204.png"><br>
+<img alt="Pasted image 20250524202226.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524202226.png"><br>
+Let's set the end of our password to a relevant address, such as 0x4446 where the &lt;unlock_door&gt; procedure lies:<img alt="Pasted image 20250524202635.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524202635.png"><br>
+<img alt="Pasted image 20250524202645.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524202645.png"><br>
+Looks like that worked :D<br>
+Solution: 000102030405060708090a0b0c0d0e0f4644]]></description><link>.\https:\\bees.lol\microcorruption\4_cusco.html</link><guid isPermaLink="false">microcorruption/4_cusco.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sun, 25 May 2025 08:19:53 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524194637.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524194637.png&quot;&gt;&lt;/figure&gt;</content:encoded></item><item><title><![CDATA[5_reykjavik]]></title><description><![CDATA[ 
+ <br>Alright, things are getting weird. We're back on rev a and we've now got an "encrypted" procedure that's called in our main function<br>
+<img alt="Pasted image 20250524213904.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524213904.png"><br>
+<img alt="Pasted image 20250524213950.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524213950.png"><br>
+This goes on for several dozen lines, and doesn't seem to do anything obvious. We can also note that after the &lt;enc&gt; function, we call whatever's at #0x2400. Let's set a breakpoint on line 444a.<br>Having exited the &lt;enc&gt; function, there's new data written into memory, conveniently starting at 0x2400<br>
+<img alt="Pasted image 20250524214447.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524214447.png"><br>
+I noticed this starts with 0b12, which we can see from the first line in &lt;enc&gt; is push r11.<br>
+I wonder what happens if we use the disassembler on this data:<br>
+<img alt="Pasted image 20250524214628.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524214628.png"><br>
+This is a bit inscrutable to me, but there is a cmp instruction 6 lines from the bottom of this screenshot, starting b490. If we look in the memory dump we can find the corresponding address for this line (0x2448) and set a breakpoint. <br>Continuing program execution we get our password prompt, let's just say test for our password. This gets stored at 0x43da<img alt="Pasted image 20250524215243.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524215243.png"><br>The comparison, cmp #0xa1a4 -0x24(r4) is looking for a value of 0xa1a4 at the address 24 bytes before the value stored in r4 which in our case is 0x43fe.  This seems pretty close to where our password is stored, and a bit of arithmetic lets us know that 24 bytes before 0x43fe is indeed 0x43da, where our password begins. So let's just set our password to 0xa1a4?<br>
+<img alt="Pasted image 20250524215831.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524215831.png"><br>
+That wasn't so bad :D<br>Solution (hex): a4a1]]></description><link>.\https:\\bees.lol\microcorruption\5_reykjavik.html</link><guid isPermaLink="false">microcorruption/5_reykjavik.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sun, 25 May 2025 08:24:22 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524213904.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524213904.png&quot;&gt;&lt;/figure&gt;</content:encoded></item><item><title><![CDATA[6_whitehorse]]></title><description><![CDATA[ 
+ <br><img alt="Pasted image 20250524221527.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524221527.png"><br>
+<img alt="Pasted image 20250524221732.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524221732.png"><br>
+<img alt="Pasted image 20250524221747.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524221747.png"><br>
+We've graduated to rev c, Lockitall has removed the function to unlock the door from within firmware, and instead the HSM directly unlocks the deadbolt.<br>Just like in <a data-tooltip-position="top" aria-label="4_cusco" data-href="4_cusco" href=".\https:\\bees.lol\microcorruption\4_cusco.html" class="internal-link" target="_self" rel="noopener nofollow">Cusco</a>, at the end of our &lt;login&gt; function we have this stack pointer manipulation just before returning. This means we should be able to put some data after the first 16 chars of our password again.<br>
+<img alt="Pasted image 20250524223225.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524223225.png"><br>
+Let's try a password longer than 16 chars and see where that gets us.<br>
+<img alt="Pasted image 20250524222050.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524222050.png"><br>
+<img alt="Pasted image 20250524223137.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524223137.png"><br>
+When we're about to return from &lt;login&gt;, sp is once again set to the location of the 17th byte of our password (the start of our EEEE substring), so we can put an address here that ret will jump to.<br>Unfortunately, we no longer have an unlock door function in our firmware to do the work for us. Luckily, if we look at the manual, we can see that the deadbolt is still connected directly to our lock.<br>
+<img alt="Pasted image 20250524223039.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524223039.png"><br>
+Maybe we can just inject the old door unlock into our program, let's take a look at <a data-tooltip-position="top" aria-label="4_cusco" data-href="4_cusco" href=".\https:\\bees.lol\microcorruption\4_cusco.html" class="internal-link" target="_self" rel="noopener nofollow">4_cusco</a> again to see how it was written.<br>
+<img alt="Pasted image 20250524224051.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524224051.png"><br>Is it that easy? Can we just stuff this program on the end of our password? Our stack pointer at the end of &lt;login&gt; is 0x3428, so let's put 0x342a after our filler to have ret jump to the next two bytes. After that we'll place our unlock door program, making sure to adjust the address for &lt;INT&gt; from Whitehorse:<br>
+3012 7f00 b012 3245 2153 3041<br>This results in a hex password of<br>
+0000 0000 0000 0000 0000 0000 0000 0000 2a34 3012 7f00 b012 3245 2153 3041 (we'll remove the spaces ofc)<br>
+<img alt="Pasted image 20250524225104.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524225104.png"><br>
+Now we can jump to the end of our &lt;login&gt; function where the stack pointer moves to the start of our payload, the address pointing to the next two bytes—the start of our unlock procedure.<br>
+<img alt="Pasted image 20250524223225.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524223225.png"><br>
+<img alt="Pasted image 20250524225243.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524225243.png"><br>
+One step later and we've "returned" from the &lt;login&gt; function to our injected unlock procedure.<br>
+<img alt="Pasted image 20250524225138.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524225138.png"><br>
+Another two steps and we've successfully called &lt;INT&gt;!<br>
+<img alt="Pasted image 20250524225429.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524225429.png"><br>
+Time to see if 0x7f was the correct value to activate our deadbolt:<br>
+<img alt="Pasted image 20250524225606.png" src=".\https:\\bees.lol\lib\media\pasted-image-20250524225606.png"><br>
+yayyyyy :D<br>Solution: 000000000000000000000000000000002a3430127f00b012324521533041]]></description><link>.\https:\\bees.lol\microcorruption\6_whitehorse.html</link><guid isPermaLink="false">microcorruption/6_whitehorse.md</guid><dc:creator><![CDATA[bees]]></dc:creator><pubDate>Sun, 25 May 2025 08:24:05 GMT</pubDate><enclosure url=".\https:\\bees.lol\lib\media\pasted-image-20250524221527.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;.\https:\\bees.lol\lib\media\pasted-image-20250524221527.png&quot;&gt;&lt;/figure&gt;</content:encoded></item></channel></rss>
